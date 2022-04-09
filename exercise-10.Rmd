@@ -1,0 +1,202 @@
+---
+title: "exercise-10"
+author: "Anais"
+date: "4/8/2022"
+output: html_document
+---
+* Using the {tidyverse} read_csv() function, load the “KamilarAndCooperData.csv” dataset from this URL as a “tibble” named d.
+
+```{r }
+library(tidyverse)
+
+f <- "https://raw.githubusercontent.com/difiore/ada-2022-datasets/main/KamilarAndCooperData.csv"
+d <- read_csv(f, col_names = TRUE)
+
+head(d)
+
+skimr::skim(d)
+```
+
+* From this dataset, plot lifespan (scored as MaxLongevity_m in the dataset) versus female body mass (scored as Body_mass_female_mean). Is the relationship linear? If not, how might you transform one or both variable to more closely approximate a linear relationship?
+```{r}
+plot(data = d, MaxLongevity_m ~ Body_mass_female_mean)
+
+```
+
+
+The relationship between lifespand and female body mass is not linear. We might want to log transform one or the two variable(s).
+
+```{r}
+# Log transforming Female Bddy Mass
+plot(data = d, MaxLongevity_m ~ log(Body_mass_female_mean))
+
+# Log transforming both variables
+plot(data = d, log(MaxLongevity_m) ~ log(Body_mass_female_mean))
+
+
+```
+
+
+
+* Run linear models of lifespan ~ female body mass, lifespan ~ log(female body mass), and log(lifespan) ~ log(female body mass)
+```{r}
+m1 <- lm(data = d, MaxLongevity_m ~ Body_mass_female_mean)
+m1
+
+m2 <- lm(data = d, MaxLongevity_m ~ log(Body_mass_female_mean))
+m2
+
+m3 <- lm(data = d, log(MaxLongevity_m) ~ log(Body_mass_female_mean))
+m3
+
+
+```
+* Generate residuals for all three linear models, plot them by hand in relation to the corresponding explanatory variable, and make histograms of the residuals. Do they appear to be normally distributed?
+
+
+```{r}
+e1 <- m1$residuals
+e2 <- m2$residuals
+e3 <- m3$residuals
+
+plot(x=m1$model$Body_mass_female_mean, y = e1)
+
+plot(x = m2$model$'log(Body_mass_female_mean)', y = e2)
+
+plot(x=m3$model$'log(Body_mass_female_mean)', y = e3)
+
+
+hist(e1, xlim = c(-4 * sd(e1), 4 * sd(e1)), breaks = 20, main = "e1")
+
+hist(e2, xlim = c(-4 * sd(e2), 4 * sd(e2)), breaks = 20, main = "e2")
+
+hist(e3, xlim = c(-4 * sd(e3), 4 * sd(e3)), breaks = 20, main = "e3")
+
+```
+
+Residuals e1 does not seems to be normally distributed. e2 and e3 show a better tendency to normality, but it is not very clear either.
+
+
+* Generate QQ plots for all three linear models. Do they appear to be normally distributed? Based on visual inspection of the QQ plots, do the residual appear to deviate from being normally distributed?
+```{r}
+
+par(mfrow = c(1, 1))
+qqnorm(m1$residuals)
+qqline(m1$residuals)
+
+par(mfrow = c(1, 1))
+qqnorm(m2$residuals)
+qqline(m2$residuals)
+
+par(mfrow = c(1, 1))
+qqnorm(m3$residuals)
+qqline(m3$residuals)
+
+```
+
+
+
+Looking at the QQ plots e3 are the residuals that look the best to be normally distributed (but not perfectly either), e2 deviate more than e3. e1 totally deviate.
+
+
+
+* Run the plot() command for all three models and visually inspect the resultant plots. What do the plots suggest about whether the assumptions for regression are met for any of these models?
+
+```{r}
+par(mfrow = c(2, 2))
+plot(m1)
+
+par(mfrow = c(2, 2))
+plot(m2)
+
+par(mfrow = c(2, 2))
+plot(m3)
+```
+
+For the model 1 the Residuals vs Fitted plot and Scale-Location plot suggest that the assumptions for regression are not met. 
+According to the model 2 and 3 the results are better but not 100% convincing. Even for the third model (both variables log transformed) the residual vs fitter plot show that the assumption that all the ϵi have the same variance is kind of true, but the distibution of the point is not perfect, and same for the trend observed in the Scale Location plot.
+
+
+* Run Shapiro-Wilks tests (e.g., using the function shapiro.test() on the residuals for all three models.
+
+
+```{r}
+
+(s <- shapiro.test(m1$residuals)) #W = 0.96352, p-value = 0.0008238 - p ≤ 0.05: then the null hypothesis can be rejected which means than the residual are not normally distributed).
+(s <- shapiro.test(m2$residuals)) #not normal p-value = 0.01131 - p > 0.05: then the null hypothesis cannot be rejected, so the residuals might be normally distributed).
+(s <- shapiro.test(m3$residuals)) #not normal p-value = 0.7403 -  > 0.05: then the null hypothesis cannot be rejected, so the residuals might be normally distributed).
+```
+
+
+
+
+## Challenge on 4/7/2022
+
+```{r}
+
+f<-"https://raw.githubusercontent.com/difiore/ada-2022-datasets/main/AVONETdataset1.csv"
+d <- read_csv(f, col_names = TRUE)
+
+
+d<-d%>%select(Species1, Family1, Order1,Beak.Width, Beak.Depth, Tarsus.Length, Wing.Length, Tail.Length, Mass, Habitat, Migration, Trophic.Level, Trophic.Niche, Min.Latitude, Max.Latitude, Centroid.Latitude, Range.Size)
+head(d)
+
+skimr::skim(d)
+
+
+ggplot(data=d%>%drop_na(Trophic.Level),aes(x=Trophic.Level,y=log(Mass), alpha=0.8))+
+  geom_boxplot()+geom_jitter()
+
+ggplot(data=d%>%drop_na(Migration),aes(x=Migration,y=log(Mass), alpha=0.8))+
+  geom_boxplot()+geom_jitter()
+
+ggplot(data=d%>%drop_na(Migration),aes(x=Migration,y=log(Mass), alpha=0.8))+
+  geom_boxplot()+geom_violin()
+
+## Run linear models and look at results
+
+m1<-lm(log(Mass)~Trophic.Level, data=d)
+
+m2<-lm(log(Mass)~as.factor(Migration),data=d)
+
+summary(m1)#R2= 0.02067-> Trophic Level explain just a little of the overall variance of body mass (significant because huge number of data)
+summary(m2)
+
+#reveleving Migration level, 3=reference
+d$Migration<-as.factor(d$Migration)
+
+d<-d%>%mutate(Migration=relevel(Migration,ref="3"))
+
+m3<-lm(log(Mass)~as.factor(Migration),data=d)
+summary(m3)
+
+library(sjPlot)
+
+tab_model(m1,m2,m3, dv.labels=c('m1','m2','m3=m2 releveled'))
+
+```
+
+
+```{r}
+
+# Permutation approach to inference
+
+library(broom)
+
+original.F<-aov(log(Mass)~Trophic.Level, data=d)%>%tidy()%>%
+  filter(term=="Trophic.Level")
+original.F # results for F stat and p valus for omnibus F Test
+
+library(infer)
+d<-d%>%mutate(logMass=log(Mass))
+permuted.F<-d%>%
+  specify(logMass~Trophic.Level)%>%
+  hypothesize(null="independence")%>%
+  generate(reps=1000,type="permute")%>%
+  calculate(stat="F")
+visualize(permuted.F)+shade_p_value(obs_stat=original.F$statistic,direction="greater")
+                                    
+original.F$p.value
+```
+
+
